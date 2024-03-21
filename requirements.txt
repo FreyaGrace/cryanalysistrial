@@ -1,9 +1,6 @@
 streamlit
-scikit-learn
 librosa
 numpy
 pandas
-click
-joblib
-pydub
+scikit-learn
 tensorflow
