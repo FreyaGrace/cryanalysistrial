@@ -1,18 +1,3 @@
-import os
-import librosa
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, precision_score, recall_score
-import pickle
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-from sklearn.preprocessing import LabelEncoder
-
 # Define function to extract MFCC features and chop audio
 def extract_mfcc(audio_file, max_length=100):
     audiofile, sr = librosa.load(audio_file)
@@ -26,11 +11,11 @@ def extract_mfcc(audio_file, max_length=100):
     else:
         return fingerprint.T
 
-def load_data():
+def load_data(data_dir):
     raw_audio = {}
     directories = ['hungry', 'belly_pain', 'burping', 'discomfort', 'tired']
     for directory in directories:
-        path = os.path.join(directory, 'audio_dataset.csv')
+        path = os.path.join(data_dir, directory, 'audio_dataset.csv')
         if os.path.exists(path):  # Check if the CSV file exists in the directory
             with open(path, 'r') as file:
                 # Assuming the CSV file contains filenames in one column and labels in another
@@ -38,12 +23,11 @@ def load_data():
                     filename, label = line.strip().split(',')  # Adjust this line according to your CSV structure
                     if filename.endswith(".wav"):
                         raw_audio[os.path.join(directory, filename)] = label
-    return raw_audio
     X, y = [], []
     max_length = 100
     for i, (audio_file, label) in enumerate(raw_audio.items()):
         mfcc_features = extract_mfcc(audio_file, max_length=max_length)
-        X.append(mfcc_features)
+        X.append(mfcc_features.flatten())
         y.append(label)
 
     X = np.array(X)
@@ -132,6 +116,5 @@ def main():
         st.write(f"Precision: {metrics['Precision']}")
         st.write(f"Recall: {metrics['Recall']}")
 
-if __name__ == "__main__":
-    app()
-
+if __name__ == '__main__':
+    main()
