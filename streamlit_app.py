@@ -32,7 +32,7 @@ def load_lstm_model():
 def load_random_forest_model():
     model_path = "myRandomForest (3).pkl"
     with open(model_path, "rb") as file:
-        model = joblib.load(file)
+        model = pickle.load(file)
     return model
 
 # Function to chop audio into snippets
