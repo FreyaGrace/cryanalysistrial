@@ -27,11 +27,11 @@ def extract_mfcc(audio_file, max_length=100):
     else:
         return fingerprint.T
 
-def load_data():
+def load_data(data_dir):
     raw_audio = {}
     directories = ['hungry', 'belly_pain', 'burping', 'discomfort', 'tired']
     for directory in directories:
-        path = os.path.join(directory, 'donateacry-corpus_features_final.csv')
+        path = os.path.join(data_dir, directory, 'audio_dataset.csv')
         if os.path.exists(path):  # Check if the CSV file exists in the directory
             with open(path, 'r') as file:
                 # Assuming the CSV file contains filenames in one column and labels in another
@@ -92,7 +92,8 @@ def main():
     st.title('Audio Classification')
 
     # Load data
-    X, y = load_data('/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
+    data_dir = st.sidebar.text_input('Data Directory', '/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
+    X, y = load_data(data_dir)
     
     # Encode labels
     label_encoder = LabelEncoder()
@@ -113,12 +114,12 @@ def main():
     pickle_model(lstm_model, "LSTM")
 
     # Display results
-    st.write("Model Evaluation Results:")
+    st.subheader("Model Evaluation Results:")
     for model_name, metrics in results.items():
         st.write(f"Model: {model_name}")
         st.write(f"Accuracy: {metrics['Accuracy']}")
         st.write(f"Precision: {metrics['Precision']}")
         st.write(f"Recall: {metrics['Recall']}")
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     main()
