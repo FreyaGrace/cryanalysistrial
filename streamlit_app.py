@@ -73,7 +73,6 @@ def app():
         predicted_cry = predict_cry(uploaded_file.name)
         if predicted_cry is not None:
             st.success(f"Predicted cry: {predicted_cry}")
-
 # Run the app
 if __name__ == "__main__":
     app()
