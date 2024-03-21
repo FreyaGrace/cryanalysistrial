@@ -133,4 +133,4 @@ def main():
         st.write(f"Recall: {metrics['Recall']}")
 
 if _name_ == '_main_':
-    main()
+    app()
