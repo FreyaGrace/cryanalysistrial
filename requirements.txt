@@ -4,5 +4,4 @@ librosa
 numpy
 pandas
 click
-keras
 tensorflow
