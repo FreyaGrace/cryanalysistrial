@@ -4,6 +4,5 @@ librosa
 numpy
 pandas
 click
-tensorflow
 joblib
 pickle
