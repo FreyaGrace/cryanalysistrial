@@ -6,4 +6,4 @@ pandas
 click
 joblib
 pydub
-
+tensorflow
