@@ -14,7 +14,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from sklearn.preprocessing import LabelEncoder
 
-
 # Define function to extract MFCC features and chop audio
 def extract_mfcc(audio_file, max_length=100):
     audiofile, sr = librosa.load(audio_file)
@@ -100,12 +99,12 @@ def pickle_model(model, modelname):
     with open(os.path.join(directory, str(modelname) + '.pkl'), 'wb') as f:
         pickle.dump(model, f)
 
-# Main function
 def main():
     st.title('Audio Classification')
 
     # Load data
-    X, y = load_data('/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
+    data_dir = st.sidebar.text_input('Data Directory', '/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
+    X, y = load_data(data_dir)
     
     # Encode labels
     label_encoder = LabelEncoder()
@@ -126,7 +125,7 @@ def main():
     pickle_model(lstm_model, "LSTM")
 
     # Display results
-    st.write("Model Evaluation Results:")
+    st.subheader("Model Evaluation Results:")
     for model_name, metrics in results.items():
         st.write(f"Model: {model_name}")
         st.write(f"Accuracy: {metrics['Accuracy']}")
