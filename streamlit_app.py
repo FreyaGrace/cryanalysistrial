@@ -120,4 +120,4 @@ def main():
         st.write(f"Precision: {metrics['Precision']}")
         st.write(f"Recall: {metrics['Recall']}")
     if __name__ == '__main__':
-    main()
+        main()
