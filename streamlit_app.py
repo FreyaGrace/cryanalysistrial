@@ -120,5 +120,5 @@ def main():
         st.write(f"Precision: {metrics['Precision']}")
         st.write(f"Recall: {metrics['Recall']}")
 
-if _name_ == "_main_":
-    app()
+if _name_ == '_main_':
+    main()
