@@ -26,16 +26,19 @@ def extract_mfcc(audio_file, max_length=100):
     else:
         return fingerprint.T
 
-# Define function to load audio data and extract features
-def load_data(directory):
+def load_data():
     raw_audio = {}
     directories = ['hungry', 'belly_pain', 'burping', 'discomfort', 'tired']
     for directory in directories:
-        path = os.path.join(directory, 'Data /Data Source/donateacry_corpus_cleaned_and_updated_data/', directory)
-        for filename in os.listdir(path):
-            if filename.endswith(".wav"):
-                raw_audio[os.path.join(path, filename)] = directory
-    
+        path = os.path.join(directory, 'donateacry-corpus_features_final.csv')
+        if os.path.exists(path):  # Check if the CSV file exists in the directory
+            with open(path, 'r') as file:
+                # Assuming the CSV file contains filenames in one column and labels in another
+                for line in file.readlines():
+                    filename, label = line.strip().split(',')  # Adjust this line according to your CSV structure
+                    if filename.endswith(".wav"):
+                        raw_audio[os.path.join(directory, filename)] = label
+    return raw_audio
     X, y = [], []
     max_length = 100
     for i, (audio_file, label) in enumerate(raw_audio.items()):
