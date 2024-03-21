@@ -7,3 +7,4 @@ click
 joblib
 tensorflow
 pydub
+keras
