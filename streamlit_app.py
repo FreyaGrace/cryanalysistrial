@@ -23,15 +23,15 @@ import streamlit as st
 
 # Load the LSTM model
 def load_lstm_model():
-    model_path = "lstm_audio_model.joblib"
+    model_path = "lstm_audio_model (2).joblib"
     model = joblib.load(model_path)
     return model
 
 # Load the Random Forest model
 def load_random_forest_model():
-    model_path = "models/myRandomForest.pkl"
+    model_path = "myRandomForest (3).pkl"
     with open(model_path, "rb") as file:
-        model = pickle.load(file)
+        model = joblib.load(file)
     return model
 
 # Function to chop audio into snippets
