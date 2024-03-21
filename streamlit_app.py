@@ -1,5 +1,5 @@
-import os
 import streamlit as st
+import os
 import librosa
 import numpy as np
 import pandas as pd
@@ -27,11 +27,11 @@ def extract_mfcc(audio_file, max_length=100):
     else:
         return fingerprint.T
 
-def load_data(data_dir):
+def load_data():
     raw_audio = {}
     directories = ['hungry', 'belly_pain', 'burping', 'discomfort', 'tired']
     for directory in directories:
-        path = os.path.join(data_dir, directory, 'audio_dataset.csv')
+        path = os.path.join(directory, 'donateacry-corpus_features_final.csv')
         if os.path.exists(path):  # Check if the CSV file exists in the directory
             with open(path, 'r') as file:
                 # Assuming the CSV file contains filenames in one column and labels in another
@@ -39,20 +39,8 @@ def load_data(data_dir):
                     filename, label = line.strip().split(',')  # Adjust this line according to your CSV structure
                     if filename.endswith(".wav"):
                         raw_audio[os.path.join(directory, filename)] = label
-    X, y = [], []
-    max_length = 100
-    for i, (audio_file, label) in enumerate(raw_audio.items()):
-        mfcc_features = extract_mfcc(audio_file, max_length=max_length)
-        X.append(mfcc_features.flatten())
-        y.append(label)
-
-    X = np.array(X)
-    y = np.array(y)
-    X_flat = X.reshape(X.shape[0], -1)
-    y_flat = y
-
-    return X_flat, y_flat
-
+    return raw_audio
+    
 # Function to train and evaluate models
 def train_evaluate_models(X_train, y_train, X_test, y_test):
     models = [
@@ -99,12 +87,12 @@ def pickle_model(model, modelname):
     with open(os.path.join(directory, str(modelname) + '.pkl'), 'wb') as f:
         pickle.dump(model, f)
 
+# Main function
 def main():
     st.title('Audio Classification')
 
     # Load data
-    data_dir = st.sidebar.text_input('Data Directory', '/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
-    X, y = load_data(data_dir)
+    X, y = load_data('/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
     
     # Encode labels
     label_encoder = LabelEncoder()
@@ -125,12 +113,12 @@ def main():
     pickle_model(lstm_model, "LSTM")
 
     # Display results
-    st.subheader("Model Evaluation Results:")
+    st.write("Model Evaluation Results:")
     for model_name, metrics in results.items():
         st.write(f"Model: {model_name}")
         st.write(f"Accuracy: {metrics['Accuracy']}")
         st.write(f"Precision: {metrics['Precision']}")
         st.write(f"Recall: {metrics['Recall']}")
 
-if __name__ == '__main__':
+if _name_ == '_main_':
     main()
