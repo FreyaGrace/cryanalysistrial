@@ -27,18 +27,18 @@ def extract_mfcc(audio_file, max_length=100):
     else:
         return fingerprint.T
 
-def load_data():
+def load_data(data_dir):
     raw_audio = {}
     directories = ['hungry', 'belly_pain', 'burping', 'discomfort', 'tired']
     for directory in directories:
-        path = os.path.join(directory, 'audio_dataset.csv')
+        path = os.path.join(data_dir, directory, 'audio_dataset.csv')
         if os.path.exists(path):  # Check if the CSV file exists in the directory
-            with open(path, 'r') as file:
-                # Assuming the CSV file contains filenames in one column and labels in another
-                for line in file.readlines():
-                    filename, label = line.strip().split(',')  # Adjust this line according to your CSV structure
-                    if filename.endswith(".wav"):
-                        raw_audio[os.path.join(directory, filename)] = label
+            df = pd.read_csv(path)  # Read CSV file using pandas
+            for _, row in df.iterrows():
+                filename = os.path.join(directory, row['filename'])  # Assuming the filename column name is 'filename'
+                label = row['label']  # Assuming the label column name is 'label'
+                if filename.endswith(".wav"):
+                    raw_audio[filename] = label
     return raw_audio
     
 # Function to train and evaluate models
