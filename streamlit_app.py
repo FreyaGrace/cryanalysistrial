@@ -1,78 +1,107 @@
-# Import necessary libraries
-from sklearn import model_selection
 import streamlit as st
+import os
 import librosa
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+import pickle
 
-
-# Define the Streamlit app
-def app():
-    st.title('Infant Cry Classification')
-
-    # Display choice of classifier
-    options = ['LSTM', 'Random Forest']
-    selected_option = st.selectbox('Select the classifier', options)
-
-    # Define model loading functions based on classifier type
-    def load_lstm_model():
-        try:
-            model_path = "lstm_audio_model (2).joblib"
-            model = joblib.load(model_path)
-            return model
-        except FileNotFoundError:
-            st.error(f"LSTM model not found at '{model_path}'. Please ensure the model exists.")
-            return None
-
-    def load_random_forest_model():
-        try:
-            model_path = "myRandomForest (3).pkl"
-            with open(model_path, "rb") as file:
-                model = joblib.load(file)
-            return model
-        except FileNotFoundError:
-            st.error(f"Random Forest model not found at '{model_path}'. Please ensure the model exists.")
-            return None
-
-    if selected_option == 'Random Forest':
-        model = load_random_forest_model()
+# Define function to extract MFCC features and chop audio
+def extract_mfcc(audio_file, max_length=100):
+    audiofile, sr = librosa.load(audio_file)
+    fingerprint = librosa.feature.mfcc(y=audiofile, sr=sr, n_mfcc=20)
+    if fingerprint.shape[1] < max_length:
+        pad_width = max_length - fingerprint.shape[1]
+        fingerprint_padded = np.pad(fingerprint, pad_width=((0, 0), (0, pad_width)), mode='constant')
+        return fingerprint_padded.T
+    elif fingerprint.shape[1] > max_length:
+        return fingerprint[:, :max_length].T
     else:
-        model = load_lstm_model()
-        if model is None:
-            st.warning("Model loading failed. Classification functionality unavailable.")
+        return fingerprint.T
 
-    # Define function to predict cry
-    def predict_cry(audio_file):
-        try:
-            # Preprocess audio (extract MFCC features)
-            audio, sr = librosa.load(audio_file)
-            mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=1)
-            mfcc_scaled = StandardScaler().fit_transform(mfcc.T)
-            mfcc_df = pd.DataFrame(mfcc_scaled.T)
+# Define function to load audio data and extract features
+def load_data(directory):
+    raw_audio = {}
+    directories = ['hungry', 'belly_pain', 'burping', 'discomfort', 'tired']
+    for directory in directories:
+        path = os.path.join(directory, 'Data /Data Source/donateacry_corpus_cleaned_and_updated_data/', directory)
+        for filename in os.listdir(path):
+            if filename.endswith(".wav"):
+                raw_audio[os.path.join(path, filename)] = directory
+    
+    X, y = [], []
+    max_length = 100
+    for i, (audio_file, label) in enumerate(raw_audio.items()):
+        mfcc_features = extract_mfcc(audio_file, max_length=max_length)
+        X.append(mfcc_features)
+        y.append(label)
 
-            prediction = model.predict(mfcc_df)
+    X = np.array(X)
+    y = np.array(y)
+    X_flat = X.reshape(X.shape[0], -1)
+    y_flat = y
 
-            # Get the class label
-            class_names = model.classes_
-            predicted_class = class_names[prediction[0]]
-            return predicted_class
-        except Exception as e:
-            st.error("Error occurred during prediction.")
-            return None
+    return X_flat, y_flat
 
-    # Audio upload
-    uploaded_file = st.file_uploader("Upload audio file", type=["wav"])
+# Function to train and evaluate models
+def train_evaluate_models(X_train, y_train, X_test, y_test):
+    models = [
+        ('Random Forest', RandomForestClassifier(n_estimators=25, max_features=5)),
+        ('Logistic Regression', LogisticRegression()),
+        ('Decision Tree', DecisionTreeClassifier()),
+        ('SVM', SVC()),
+    ]
 
-    if uploaded_file is not None:
-        # Perform classification if audio file is uploaded
-        with open(uploaded_file.name, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+    results = {}
+    for model_name, model in models:
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, average='weighted')
+        recall = recall_score(y_test, y_pred, average='weighted')
+        results[model_name] = {'Accuracy': accuracy, 'Precision': precision, 'Recall': recall}
+    
+    return results
 
-        predicted_cry = predict_cry(uploaded_file.name)
-        if predicted_cry is not None:
-            st.success(f"Predicted cry: {predicted_cry}")
-# Run the app
-if __name__ == "__main__":
-    app()
+# Function to pickle the best model
+def pickle_model(model, modelname):
+    directory = 'models'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    with open(os.path.join(directory, str(modelname) + '.pkl'), 'wb') as f:
+        pickle.dump(model, f)
+
+# Main function
+def main():
+    st.title('Audio Classification')
+
+    # Load data
+    X, y = load_data('/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
+    
+    # Split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Train and evaluate models
+    results = train_evaluate_models(X_train, y_train, X_test, y_test)
+
+    # Display results
+    st.write("Model Evaluation Results:")
+    for model_name, metrics in results.items():
+        st.write(f"Model: {model_name}")
+        st.write(f"Accuracy: {metrics['Accuracy']}")
+        st.write(f"Precision: {metrics['Precision']}")
+        st.write(f"Recall: {metrics['Recall']}")
+
+        # Pickle the best model
+        if metrics['Accuracy'] == max([metrics['Accuracy'] for metrics in results.values()]):
+            best_model = models[model_name]()
+            best_model.fit(X_train, y_train)
+            pickle_model(best_model, model_name)
+
+if __name__ == '__main__':
+    main()
