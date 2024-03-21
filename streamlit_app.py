@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import joblib
-import pickle
+
 
 # Define the Streamlit app
 def app():
@@ -30,7 +30,7 @@ def app():
         try:
             model_path = "myRandomForest (3).pkl"
             with open(model_path, "rb") as file:
-                model = pickle.load(file)
+                model = joblib.load(file)
             return model
         except FileNotFoundError:
             st.error(f"Random Forest model not found at '{model_path}'. Please ensure the model exists.")
