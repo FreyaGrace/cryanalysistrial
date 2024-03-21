@@ -1,3 +1,19 @@
+import os
+import librosa
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+import pickle
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from sklearn.preprocessing import LabelEncoder
+
+
 # Define function to extract MFCC features and chop audio
 def extract_mfcc(audio_file, max_length=100):
     audiofile, sr = librosa.load(audio_file)
