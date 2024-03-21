@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import joblib
-import pyaudio
-import wave
-import pickle
+# import pyaudio
+# import wave
+# import pickle
 
 # Define the Streamlit app
 def app():
@@ -44,47 +44,47 @@ def app():
         if model is None:
             st.warning("Model loading failed. Classification functionality unavailable.")
 
-    def record_audio():
-        CHUNK = 1024
-        FORMAT = pyaudio.paInt16
-        CHANNELS = 1
-        RATE = 44100
-        RECORD_SECONDS = 5  # Adjust recording duration as needed
+    # def record_audio():
+    #     CHUNK = 1024
+    #     FORMAT = pyaudio.paInt16
+    #     CHANNELS = 1
+    #     RATE = 44100
+    #     RECORD_SECONDS = 5  # Adjust recording duration as needed
 
-        p = pyaudio.PyAudio()
+    #     p = pyaudio.PyAudio()
 
-        stream = p.open(format=FORMAT,
-                        channels=CHANNELS,
-                        rate=RATE,
-                        input=True,
-                        frames_per_buffer=CHUNK)
+    #     stream = p.open(format=FORMAT,
+    #                     channels=CHANNELS,
+    #                     rate=RATE,
+    #                     input=True,
+    #                     frames_per_buffer=CHUNK)
 
-        frames = []
-        for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-            data = stream.read(CHUNK)
-            frames.append(data)
+    #     frames = []
+    #     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+    #         data = stream.read(CHUNK)
+    #         frames.append(data)
 
-        stream.stop_stream()
-        stream.close()
-        p.terminate()
+    #     stream.stop_stream()
+    #     stream.close()
+    #     p.terminate()
 
-        wf = wave.open("recording.wav", 'wb')
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(pyaudio.get_sample_size(FORMAT))
-        wf.setframerate(RATE)
-        wf.writeframes(b''.join(frames))
-        wf.close()
+    #     wf = wave.open("recording.wav", 'wb')
+    #     wf.setnchannels(CHANNELS)
+    #     wf.setsampwidth(pyaudio.get_sample_size(FORMAT))
+    #     wf.setframerate(RATE)
+    #     wf.writeframes(b''.join(frames))
+    #     wf.close()
 
-    recorded_audio = st.file_uploader("Upload or record audio", type=["wav"])
+    # recorded_audio = st.file_uploader("Upload or record audio", type=["wav"])
 
-    if recorded_audio is not None:
-        if "wav" in recorded_audio.name:
-            with open(recorded_audio.name, "wb") as f:
-                f.write(recorded_audio.getbuffer())
-        else:
-            st.error("Please upload a WAV audio file.")
-    elif st.button("Record Audio"):
-        record_audio()
+    # if recorded_audio is not None:
+    #     if "wav" in recorded_audio.name:
+    #         with open(recorded_audio.name, "wb") as f:
+    #             f.write(recorded_audio.getbuffer())
+    #     else:
+    #         st.error("Please upload a WAV audio file.")
+    # elif st.button("Record Audio"):
+    #     record_audio()
 
     def predict_cry(audio_file):
         try:
@@ -104,14 +104,14 @@ def app():
             st.error("Error occurred during prediction.")
             return None
 
-    if recorded_audio is not None or st.button("Classify"):
-        if recorded_audio is None:
-            audio_file = "recording.wav"  # Use recorded audio if available
-        else:
-            audio_file = "recording.wav"  # Provide the correct path to the audio file
-        predicted_cry = predict_cry(audio_file)
-        if predicted_cry is not None:
-            st.success(f"Predicted cry: {predicted_cry}")
+    # if recorded_audio is not None or st.button("Classify"):
+    #     if recorded_audio is None:
+    #         audio_file = "recording.wav"  # Use recorded audio if available
+    #     else:
+    #         audio_file = "recording.wav"  # Provide the correct path to the audio file
+    #     predicted_cry = predict_cry(audio_file)
+    #     if predicted_cry is not None:
+    #         st.success(f"Predicted cry: {predicted_cry}")
 
 # Run the app
 if __name__ == "__main__":
