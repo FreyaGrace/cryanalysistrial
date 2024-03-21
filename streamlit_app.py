@@ -1,17 +1,71 @@
-import streamlit as st
-import os
+iimport os
+import pandas as pd
 import librosa
 import numpy as np
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
+import tensorflow as tf
+from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, precision_score, recall_score
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 import pickle
+from collections import Counter
+from pydub import AudioSegment
+from io import BytesIO
+import wave
+import math
+import uuid
+import streamlit as st
 
-# Define function to extract MFCC features and chop audio
+# Load the LSTM model
+def load_lstm_model():
+    model_path = "lstm_audio_model.joblib"
+    model = joblib.load(model_path)
+    return model
+
+# Load the Random Forest model
+def load_random_forest_model():
+    model_path = "models/myRandomForest.pkl"
+    with open(model_path, "rb") as file:
+        model = pickle.load(file)
+    return model
+
+# Function to chop audio into snippets
+def chop_new_audio(audio_data, folder):
+    os.makedirs(folder, exist_ok=True)
+    audio = wave.open(audio_data, 'rb')
+    frame_rate = audio.getframerate()
+    n_frames = audio.getnframes()
+    window_size = 2 * frame_rate
+    num_secs = int(math.ceil(n_frames / frame_rate))
+    last_number_frames = 0
+
+    for i in range(num_secs):
+        shortfilename = str(uuid.uuid4())
+        snippetfilename = f"{folder}/{shortfilename}snippet{i+1}.wav"
+        snippet = wave.open(snippetfilename, 'wb')
+        snippet.setnchannels(2)
+        snippet.setsampwidth(audio.getsampwidth())
+        snippet.setframerate(frame_rate)
+        snippet.setnframes(audio.getnframes())
+        snippet.writeframes(audio.readframes(window_size))
+        audio.setpos(audio.tell() - 1 * frame_rate)
+
+        if last_number_frames < 1:
+            last_number_frames = snippet.getnframes()
+        elif snippet.getnframes() != last_number_frames:
+            os.rename(snippetfilename, f"{snippetfilename}.bak")
+        snippet.close()
+
+# Load models
+lstm_model = load_lstm_model()
+random_forest_model = load_random_forest_model()
+
+# Function to extract MFCC features and chop audio
 def extract_mfcc(audio_file, max_length=100):
     audiofile, sr = librosa.load(audio_file)
     fingerprint = librosa.feature.mfcc(y=audiofile, sr=sr, n_mfcc=20)
@@ -24,84 +78,56 @@ def extract_mfcc(audio_file, max_length=100):
     else:
         return fingerprint.T
 
-# Define function to load audio data and extract features
-def load_data(directory):
-    raw_audio = {}
-    directories = ['hungry', 'belly_pain', 'burping', 'discomfort', 'tired']
-    for directory in directories:
-        path = os.path.join(directory, 'Data /Data Source/donateacry_corpus_cleaned_and_updated_data/', directory)
-        for filename in os.listdir(path):
+# Function to predict on new audio snippets
+def predict_cry(audio_file, model):
+    audiofile, sr = librosa.load(audio_file)
+    mfcc_features = extract_mfcc(audio_file)
+    mfcc_features_flat = mfcc_features.reshape(-1)
+    if len(mfcc_features_flat) < 2000:
+        mfcc_features_flat = np.pad(mfcc_features_flat, (0, 2000 - len(mfcc_features_flat)))
+    elif len(mfcc_features_flat) > 2000:
+        mfcc_features_flat = mfcc_features_flat[:2000]
+    prediction = model.predict([mfcc_features_flat])
+    return prediction[0]
+
+# Streamlit app
+def app():
+    st.title('Baby Cry Classification')
+
+    # Audio upload
+    uploaded_file = st.file_uploader("Upload audio file", type=["wav", "mp3"])
+
+    if uploaded_file is not None:
+        st.audio(uploaded_file)
+
+        # Save uploaded file
+        file_bytes = uploaded_file.read()
+        with open("uploaded_audio.wav", "wb") as f:
+            f.write(file_bytes)
+
+        # Chop audio
+        chop_new_audio(BytesIO(file_bytes), "audio_snippets")
+
+        # Predictions
+        lstm_predictions = []
+        rf_predictions = []
+
+        for filename in os.listdir("audio_snippets"):
             if filename.endswith(".wav"):
-                raw_audio[os.path.join(path, filename)] = directory
-    
-    X, y = [], []
-    max_length = 100
-    for i, (audio_file, label) in enumerate(raw_audio.items()):
-        mfcc_features = extract_mfcc(audio_file, max_length=max_length)
-        X.append(mfcc_features)
-        y.append(label)
+                lstm_prediction = predict_cry(os.path.join("audio_snippets", filename), lstm_model)
+                rf_prediction = predict_cry(os.path.join("audio_snippets", filename), random_forest_model)
+                lstm_predictions.append(lstm_prediction)
+                rf_predictions.append(rf_prediction)
 
-    X = np.array(X)
-    y = np.array(y)
-    X_flat = X.reshape(X.shape[0], -1)
-    y_flat = y
+        lstm_counter = Counter(lstm_predictions)
+        rf_counter = Counter(rf_predictions)
 
-    return X_flat, y_flat
+        st.subheader("LSTM Model Predictions:")
+        st.write(lstm_counter)
 
-# Function to train and evaluate models
-def train_evaluate_models(X_train, y_train, X_test, y_test):
-    models = [
-        ('Random Forest', RandomForestClassifier(n_estimators=25, max_features=5)),
-        ('Logistic Regression', LogisticRegression()),
-        ('Decision Tree', DecisionTreeClassifier()),
-        ('SVM', SVC()),
-    ]
+        st.subheader("Random Forest Model Predictions:")
+        st.write(rf_counter)
 
-    results = {}
-    for model_name, model in models:
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, average='weighted')
-        recall = recall_score(y_test, y_pred, average='weighted')
-        results[model_name] = {'Accuracy': accuracy, 'Precision': precision, 'Recall': recall}
-    
-    return results
-
-# Function to pickle the best model
-def pickle_model(model, modelname):
-    directory = 'models'
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    with open(os.path.join(directory, str(modelname) + '.pkl'), 'wb') as f:
-        pickle.dump(model, f)
-
-# Main function
-def main():
-    st.title('Audio Classification')
-
-    # Load data
-    X, y = load_data('/content/drive/MyDrive/3rd year projects/Thesis/Thesis 1/Data')
-    
-    # Split data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Train and evaluate models
-    results = train_evaluate_models(X_train, y_train, X_test, y_test)
-
-    # Display results
-    st.write("Model Evaluation Results:")
-    for model_name, metrics in results.items():
-        st.write(f"Model: {model_name}")
-        st.write(f"Accuracy: {metrics['Accuracy']}")
-        st.write(f"Precision: {metrics['Precision']}")
-        st.write(f"Recall: {metrics['Recall']}")
-
-        # Pickle the best model
-        if metrics['Accuracy'] == max([metrics['Accuracy'] for metrics in results.values()]):
-            best_model = models[model_name]()
-            best_model.fit(X_train, y_train)
-            pickle_model(best_model, model_name)
-
-if __name__ == '__main__':
-    main()
+# Run the app
+if __name__ == "__main__":
+    app()
