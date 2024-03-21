@@ -20,6 +20,7 @@ import wave
 import math
 import uuid
 import streamlit as st
+import joblib 
 
 # Load the LSTM model
 def load_lstm_model():
